@@ -1,6 +1,7 @@
 const { Wallet } = require('simple-nano-wallet-js');
 const { wallet: walletLib} = require('multi-nano-web')
 
+const axios = require("axios");
 const wallet = require('../config/wallet.json');
 const config = require('../config/general.json');
 
@@ -118,9 +119,45 @@ async function sendBAN(amount, add) {
     
 }
 
+async function balance(coin, add) {
+    console.log(coin + '\n' + add);
+    const data = {
+      action: "account_balance",
+      account: add
+    };
+
+    const head = {
+        headers: {
+          "Content-Type": "application/json",
+          "nodes-api-key": config["nodes-api-key"]
+        }
+    };
+
+    const urlNode = "https://nodes.nanswap.com/" + coin;
+  
+    try {
+      const response = await axios.post(urlNode, data, head);
+
+      
+      console.log(response.data);
+      return response.data;
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+async function receiveAna(account) {
+    // receive all receivable blocks for an account
+    const hashesReceive = await walletANA.receiveAll(account);
+    return hashesReceive; 
+}
+  
+
 module.exports = {
     sendXDG,
     sendANA,
     sendBAN,
     sendXNO,
+    balance,
+    receiveAna,
   };

@@ -9,6 +9,7 @@ const wallet = require('../modules/wallet.js');
 app.use(bodyParser.json());
 
 const config = require('../config/general.json');
+const nodes = require('../config/wallet.json');
 
 const port = config["apiPort"];
 
@@ -58,6 +59,7 @@ app.get('/admin/money', (req, res) => {
         .then((response) => {
             if (response != null) {
                 totalPaid = response["totalPaid"];
+                discord = response["discord"]
                 uuid = response["uuid"];
                 earnappAPI.devices()
                     .then((response) => {
@@ -66,10 +68,10 @@ app.get('/admin/money', (req, res) => {
                         obj.notPaid = withdraw;
                         delete obj.ips;
                         const coinMap = {
-                            "nano_": { getPrice: change.getPriceInNano, coin: "xno" },
-                            "ban_": { getPrice: change.getPriceInBanano, coin: "ban" },
-                            "xdg_": { getPrice: change.getPriceInDogenano, coin: "xdg" },
-                            "ana_": { getPrice: change.getPriceInAnanos, coin: "ana" }
+                            "nano_": { getPrice: change.getPriceInNano, coin: "XNO" },
+                            "ban_": { getPrice: change.getPriceInBanano, coin: "BAN" },
+                            "xdg_": { getPrice: change.getPriceInDogenano, coin: "XDG" },
+                            "ana_": { getPrice: change.getPriceInAnanos, coin: "ANA" }
                           };
                           
                           const prefix = Object.keys(coinMap).find((prefix) => user.startsWith(prefix));
@@ -85,7 +87,9 @@ app.get('/admin/money', (req, res) => {
                                         obj.earned_crypto = response;
                                         getPrice(obj.notPaid)
                                             .then((response) => {
+                                                obj.discord = discord;
                                                 obj.notPaidCrypto = response;
+                                                obj.code = 200;
                                                 res.send(obj);
                                             })
                                             .catch((error) => {
@@ -107,7 +111,7 @@ app.get('/admin/money', (req, res) => {
                     });
 
             } else {
-                res.send('{"status": "Address not found"}');
+                res.send('{"status": "Address not found", "code": 500 }');
             }
             
         })
@@ -115,10 +119,28 @@ app.get('/admin/money', (req, res) => {
             console.error('Erreur lors de la récupération de la liste des appareils:', error);
         });
     } else {
-        res.send('{"status": "Invalid Address"}');
+        res.send('{"status": "Invalid Address", "code": 501 }');
     }
   
   });
+
+  app.get('/discord/:user', (req, res) => {
+
+    const idDiscord = req.params.user;
+    db.getUserByDiscord(idDiscord)
+        .then((response) => {
+            if (response) {
+                res.send(response);
+            } else {
+                res.send('{"status": "Discord not found", "code": 55 }');
+            }
+        })
+        .catch((error) => {
+            console.error('Erreur lors de la récupération de la liste des appareils:', error);
+        });
+
+  });
+
 
   app.get('/withdraw/:user', (req, res) => {
 
@@ -168,8 +190,8 @@ app.get('/admin/money', (req, res) => {
                                                 var hash = response;
                                                 db.defMoney(uuid, withdraw)
                                                     .then((response) => {
+                                                        hash.code = 200;
                                                         res.json(hash);
-                                                        console.log(response);
                                                     })
                                                     .catch((error) => {
                                                         console.error('Erreur lors de la récupération de la liste des appareils:', error);
@@ -184,7 +206,7 @@ app.get('/admin/money', (req, res) => {
                                     });
                                 }
                             } else {
-                                res.send('{"status": "Minimum is 0.0001$"}');
+                                res.send('{"status": "Minimum is 0.0001$", "code": 300 }');
                             }
                           
                     })
@@ -193,7 +215,7 @@ app.get('/admin/money', (req, res) => {
                     });
 
             } else {
-                res.send('{"status": "Address not found"}');
+                res.send('{"status": "Address not found", "code": 301 }');
             }
             
         })
@@ -202,7 +224,7 @@ app.get('/admin/money', (req, res) => {
         });
 
     } else {
-        res.send('{"status": "Invalid Address"}');
+        res.send('{"status": "Invalid Address", "code": 302 }');
     }
 
 
@@ -216,37 +238,127 @@ app.post('/', (req, res) => {
             if (body["add"]) {
                 if (body["add"].length < 70 && body["add"].length > 60) {
                     if (body["add"].substring(0, 5) =="nano_" || body["add"].substring(0, 4) =="ana_" || body["add"].substring(0, 4) =="xdg_" || body["add"].substring(0, 5) =="ban_") {
-                        earnappAPI.add(body["uuid"])
+                        db.getUserByAddress(body["add"])
                             .then((response) => {
-                                if (response["status"]) {
-                                    if(response["status"] == "ok") {
-                                        db.addUser(body["uuid"], body["add"]);
-                                        res.send('{"status": "You are now registered"}');
-                                    }
+                                if (response) {
+                                    res.send('{"status": "Address found", "code": 54 }');
                                 } else {
-                                    if (response["error"]) {
-                                        res.send('{"status": "' + response["error"] + '"}');
-                                    }
-                                } 
+                                    db.getUser(body["uuid"])
+                                        .then((response) => {
+                                            if (response) {
+                                                res.send('{"status": "UUID found", "code": 53 }');
+                                            } else {
+                                                earnappAPI.add(body["uuid"])
+                                                    .then((response) => {
+                                                        if (response["status"]) {
+                                                            if(response["status"] == "ok") {
+                                                                if (body["discord"]) {
+                                                                    db.addUser(body["uuid"], body["add"], body["discord"]);
+                                                                    console.log("111");
+                                                                    res.send('{"status": "You are now registered", "code": 200 }');
+                                                                } else {
+                                                                    db.addUser(body["uuid"], body["add"], 0);
+                                                                    console.log("222");
+                                                                    res.send('{"status": "You are now registered", "code": 200 }');
+                                                                }
+                                                                
+                                                                
+                                                            }
+                                                        } else {
+                                                            if (response["error"]) {
+                                                                if (response["error"] == "This device was already linked") {
+                                                                    res.send('{"status": "' + response["error"] + '", "code": 30 }');
+                                                                } else if (response["error"] == "The device is not found") {
+                                                                    res.send('{"status": "' + response["error"] + '", "code": 31 }');
+                                                                } else {
+                                                                    res.send('{"status": "' + response["error"] + '"}');
+                                                                }
+                                                            
+                                                            }
+                                                        } 
+                                                    })
+                                                    .catch((error) => {
+                                                    console.error('Erreur lors de la récupération de la liste des appareils:', error);
+                                                    });
+                                            }
+                                        })
+                                        .catch((error) => {
+                                            console.error('Erreur lors de la récupération de la liste des appareils:', error);
+                                        });
+                                }
                             })
                             .catch((error) => {
-                            console.error('Erreur lors de la récupération de la liste des appareils:', error);
+                                console.error('Erreur lors de la récupération de la liste des appareils:', error);
                             });
                     } else {
-                        res.send('{"status": "Invalid Address"}');
+                        res.send('{"status": "Invalid Address", "code": 100}');
                     }
                 } else {
-                    res.send('{"status": "Too Short"}');
+                    res.send('{"status": "Too Short", "code": 105}');
                 }
             }
         } else {
-            res.send('{"status": "Invalid Uuid"}');
+            res.send('{"status": "Invalid Uuid", "code": 201}');
         }
     } else {
         res.send('{"status": "where is the uuid?"}');
     }
    }
+
+   if (body["action"] == "discord") {
+    if (body["uuid"]) {
+        if (body["uuid"].substring(0, 4) == "sdk-") {
+            if (body["discord"]) {
+                db.getUser(body["uuid"])
+                    .then((response) => {
+                        if (response["discord"] != 0) {
+                            res.send('{"status": "Account alr link", "code": 494 }')
+                        } else {
+                            db.defDiscord(body["uuid"], body["discord"])
+                                .then((response) => {
+                                    res.send('{"status": "ok", "code": 493 }')
+                                })
+                                .catch((error) => {
+                                    res.send('{"status": "Error", "code": 44 }')
+                                });
+                        }
+                    })
+                    .catch((error) => {
+                        console.error('Erreur lors de la récupération de la liste des appareils:', error);
+                        res.send('{"status": "UUID not fount", "code": 492 }')
+                    });
+                
+                }
+                
+            }
+        }
+    }
+
 });
+
+app.get('/balances', async (req, res) => {
+    try {
+      const promises = [
+        wallet.balance("XNO", nodes["accountXNO"]),
+        wallet.balance("BAN", nodes["accountBAN"]),
+        wallet.balance("ANA", nodes["accountANA"]),
+        wallet.balance("XDG", nodes["accountXDG"])
+      ];
+      
+      const results = await Promise.all(promises);
+      const nanor = results[0]["balance"];
+      const bananor = results[1]["balance"];
+      const ananosr = results[2]["balance"];
+      const dogenanor = results[3]["balance"];
+  
+      const resultat = '{"nano": ' + nanor + ', "banano": ' + bananor + ', "ananos": ' + ananosr + ', "dogenano": ' + dogenanor + '}';
+      res.send(resultat);
+    } catch (error) {
+      console.error(error);
+      res.status(500).send("Erreur lors de la récupération des soldes");
+    }
+  });
+  
   
 
 // Lancer le serveur
