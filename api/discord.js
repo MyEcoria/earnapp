@@ -247,6 +247,7 @@ client.on('interactionCreate', async interaction => {
                         const bandInGB = (bandInBytes / 1000000000).toFixed(5);
                         const bandStr = `${bandInGB} GB`;
 
+                        const drapeaux = 'https://flagcdn.com/48x36/' + response.data["country"] + '.png';
 
                         // Mettre à jour l'embed avec les résultats de la requête
                         const statsEmbed = new EmbedBuilder()
@@ -259,6 +260,7 @@ client.on('interactionCreate', async interaction => {
                                 { name: 'Unclaimed', value: withdraw, inline: true },
                                 { name: 'Bandwidth', value: bandStr, inline: true },
                             )
+                            .setThumbnail(drapeaux)
                         await loadingMessage.edit({ embeds: [statsEmbed] });
 
                     } 
