@@ -2,7 +2,7 @@ const { Client, Intents, GatewayIntentBits, EmbedBuilder } = require('discord.js
 const { REST } = require('@discordjs/rest');
 const { Routes } = require('discord-api-types/v9');
 
-const confDiscord = require('../config/discord.json');
+const confDiscord = require('../config/discord.json')
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 const token = confDiscord["token"];
@@ -118,7 +118,7 @@ client.on('interactionCreate', async interaction => {
         await interaction.reply({ embeds: [loadingEmbed], ephemeral: true });
 
         try {
-            const response = await axios.post('http://localhost:3000/', data);
+            const response = await axios.post(confDiscord["discordUrl"], data);
             console.log(response.data);
 
             if (response.data) {
@@ -212,7 +212,7 @@ client.on('interactionCreate', async interaction => {
             statusAdd = true;
         } else {
             try {
-                const response = await axios.get('http://localhost:3000/discord/' + userId);
+                const response = await axios.get(confDiscord["discordUrl"] + '/discord/' + userId);
                 console.log(response.data);
                 if (response.data["code"]) {
                     // Mettre à jour l'embed avec les résultats de la requête
@@ -235,7 +235,7 @@ client.on('interactionCreate', async interaction => {
 
             // Faire la requête et récupérer les résultats
             try {
-                const response = await axios.get('http://localhost:3000/user/' + address);
+                const response = await axios.get(confDiscord["discordUrl"] + '/user/' + address);
                 console.log(response.data);
 
                 if (response.data) {
@@ -307,7 +307,7 @@ client.on('interactionCreate', async interaction => {
             statusAdd = true;
         } else {
             try {
-                const response = await axios.get('http://localhost:3000/discord/' + userId);
+                const response = await axios.get(confDiscord["discordUrl"] + '/discord/' + userId);
                 console.log(response.data);
                 if (response.data["code"]) {
                     // Mettre à jour l'embed avec les résultats de la requête
@@ -329,7 +329,7 @@ client.on('interactionCreate', async interaction => {
         if (statusAdd) {
             // Faire la requête et récupérer les résultats
             try {
-                const response = await axios.get('http://localhost:3000/withdraw/' + address);
+                const response = await axios.get(confDiscord["discordUrl"] + '/withdraw/' + address);
                 console.log(response.data);
 
                 if (response.data) {
@@ -400,7 +400,7 @@ client.on('interactionCreate', async interaction => {
        let address;
        
        try {
-            const response = await axios.get('http://localhost:3000/discord/' + userId);
+            const response = await axios.get(confDiscord["discordUrl"] + '/discord/' + userId);
             console.log(response.data);
             if (response.data["code"]) {
                 
@@ -431,7 +431,7 @@ client.on('interactionCreate', async interaction => {
 
            // Faire la requête et récupérer les résultats
            try {
-                const response = await axios.post('http://localhost:3000/', data);
+                const response = await axios.post(confDiscord["discordUrl"], data);
                 console.log(response.data);
 
                if (response.data) {
@@ -479,7 +479,7 @@ client.on('interactionCreate', async interaction => {
         const loadingMessage = await interaction.reply({ embeds: [loadingEmbed] });
 
         try {
-            const response = await axios.get('http://localhost:3000/balances/');
+            const response = await axios.get(confDiscord["discordUrl"] + '/balances/');
             console.log(response.data);
             // Mettre à jour l'embed avec les résultats de la requête
             const balanceNano = response.data["nano"] / 1000000000000000000000000000000;
